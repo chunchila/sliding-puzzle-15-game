@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>פאזל ההזזה - 15</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#12232e;font-family:-apple-system,'Segoe UI',Arial,sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
+  h1{font-size:26px;color:#ffd166;margin:0}
+  #hud{display:flex;gap:14px;color:#fff;font-size:15px;font-weight:700}
+  #hud span{background:rgba(255,255,255,.1);padding:5px 14px;border-radius:18px}
+  #board{position:relative;width:min(92vw,420px);aspect-ratio:1;background:#0a161e;border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.5),inset 0 0 0 2px rgba(255,255,255,.06)}
+  .tile{position:absolute;width:23.5%;height:23.5%;display:flex;align-items:center;justify-content:center;font-size:clamp(24px,8vw,40px);font-weight:800;color:#12232e;border-radius:12px;cursor:pointer;transition:left .15s ease,top .15s ease;background:linear-gradient(145deg,#ffd166,#f4a261);box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.5)}
+  .tile:nth-child(4n){background:linear-gradient(145deg,#8ecae6,#4d96a9);color:#fff}
+  .tile:nth-child(4n+2){background:linear-gradient(145deg,#b583d6,#7b5296);color:#fff}
+  .tile:active{filter:brightness(1.15)}
+  .btn{background:linear-gradient(135deg,#06d6a0,#118ab2);border:none;color:#fff;font-size:17px;font-weight:700;padding:12px 34px;border-radius:36px;cursor:pointer;box-shadow:0 6px 18px rgba(6,214,160,.35);font-family:inherit}
+  .btn:active{transform:scale(.95)}
+  .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,16,22,.86);backdrop-filter:blur(6px);z-index:10;color:#fff;text-align:center;padding:20px}
+  .overlay h1{font-size:34px;margin-bottom:10px;color:#ffd166}
+  .overlay p{font-size:17px;margin-bottom:22px;color:#cfe3ee;line-height:1.7}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>פאזל ההזזה</h1>
+  <div id="hud"><span id="moves">מהלכים: 0</span><span id="time">⏱ 0:00</span></div>
+  <div id="board"></div>
+  <button class="btn" id="shuffleBtn">ערבב מחדש</button>
+</div>
+<div class="overlay" id="startOv">
+  <h1>פאזל ההזזה</h1>
+  <p>סדרו את המספרים מ-1 עד 15<br>הזיזו אריחים לתא הריק!</p>
+  <button class="btn" id="startBtn">התחל לשחק</button>
+</div>
+<div class="overlay hidden" id="winOv">
+  <h1>פתרתם!</h1>
+  <p id="winText"></p>
+  <button class="btn" id="againBtn">עוד פעם</button>
+</div>
+<script>
+(function(){
+'use strict';
+var N=4,board=[],moves=0,seconds=0,timer=null,playing=false;
+var el=document.getElementById('board');
+function solved(){var a=[];for(var i=1;i<N*N;i++)a.push(i);a.push(0);return a;}
+function isSolved(b){for(var i=0;i<N*N-1;i++)if(b[i]!==i+1)return false;return true;}
+function shuffle(){
+  board=solved();
+  for(var k=0;k<400;k++){
+    var z=board.indexOf(0),zr=Math.floor(z/N),zc=z%N,opts=[];
+    if(zr>0)opts.push(z-N);if(zr<N-1)opts.push(z+N);
+    if(zc>0)opts.push(z-1);if(zc<N-1)opts.push(z+1);
+    var p=opts[Math.floor(Math.random()*opts.length)];
+    var t=board[z];board[z]=board[p];board[p]=t;
+  }
+  if(isSolved(board))shuffle();
+}
+function render(){
+  el.innerHTML='';
+  board.forEach(function(v,i){
+    if(!v)return;
+    var d=document.createElement('div');
+    d.className='tile';d.textContent=v;
+    var r=Math.floor(i/N),c=i%N;
+    d.style.left=(c*25+0.75)+'%';d.style.top=(r*25+0.75)+'%';
+    d.addEventListener('click',function(){move(i);});
+    el.appendChild(d);
+  });
+}
+function move(i){
+  if(!playing)return;
+  var z=board.indexOf(0),zr=Math.floor(z/N),zc=z%N,ir=Math.floor(i/N),ic=i%N;
+  if(Math.abs(zr-ir)+Math.abs(zc-ic)!==1)return;
+  var t=board[z];board[z]=board[i];board[i]=t;
+  moves++;document.getElementById('moves').textContent='מהלכים: '+moves;
+  render();
+  if(isSolved(board))win();
+}
+function win(){
+  playing=false;clearInterval(timer);
+  document.getElementById('winText').textContent='פתרתם את הפאזל ב-'+moves+' מהלכים ובזמן '+fmt(seconds)+'!';
+  document.getElementById('winOv').classList.remove('hidden');
+}
+function fmt(s){return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);}
+function start(){
+  moves=0;seconds=0;playing=true;
+  document.getElementById('moves').textContent='מהלכים: 0';
+  document.getElementById('time').textContent='⏱ 0:00';
+  shuffle();render();
+  clearInterval(timer);
+  timer=setInterval(function(){seconds++;document.getElementById('time').textContent='⏱ '+fmt(seconds);},1000);
+  document.getElementById('startOv').classList.add('hidden');
+  document.getElementById('winOv').classList.add('hidden');
+}
+document.getElementById('startBtn').addEventListener('click',start);
+document.getElementById('againBtn').addEventListener('click',start);
+document.getElementById('shuffleBtn').addEventListener('click',start);
+board=solved();render();
+})();
+</script>
+</body>
+</html>
